@@ -29,9 +29,14 @@ struct Complex
     Complex(double r = 0.0, double i = 0.0) : real(r), imag(i) {}
 };
 
+Complex operator-(Complex a) { return Complex(-a.real,-a.imag); }
+
 Complex operator+(Complex a, Complex b) { return Complex(a.real + b.real, a.imag + b.imag); }
 Complex operator-(Complex a, Complex b) { return Complex(a.real - b.real, a.imag - b.imag); }
 Complex operator*(Complex a, Complex b) { return Complex(a.real * b.real - a.imag * b.imag, a.real * b.imag + a.imag * b.real); }
+Complex operator*(double m,Complex a) { return Complex(m*a.real,m*a.imag); }
+Complex operator*(Complex a,double m) { return Complex(m*a.real,m*a.imag); }
+
 Complex conjugate(Complex a) { return Complex(a.real, -a.imag); }
 Complex polar(double theta) { return Complex(cos(theta), sin(theta)); }
 Complex rotate_twopi_x(const Complex &a, double x) { return a * polar(x * TWOPI); }
@@ -79,10 +84,8 @@ void print_complex(const Complex &a)
 void out_complex(const Complex &a, ostream & o)
 {
     char op = a.imag < 0.0 ? '-' : '+';
-
     if (a.real != 0.0) o << a.real;
     if (a.imag != 0.0) o << op << std::abs(a.imag) << 'i';
-
     o<<std::endl;
 }
 Complex powers(int N, int k)
