@@ -81,7 +81,7 @@ int main(int argc, char *argv[]) {
 
   fstream out("fourier_envelope.wav",ios_base::binary|ios_base::out);
   out.write(header,44);
-  out.write(data,size);
+  out.write(reinterpret_cast<char*>(samples),size);
 
   delete[] coef;
   delete[] data;

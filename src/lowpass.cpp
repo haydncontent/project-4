@@ -13,14 +13,42 @@
 using namespace std;
 using namespace IMath;
 
-void LowPassFilter(ComplexVector & signal)
-{
+// y_t = x_t + a*x_{t-1}
+class lowpass
+{ 
+public:
+    lowpass(float a_) : a(a_), x1(0.f) {}
+    float operator()(float x) 
+    { 
+        double y=x+(a*x1);
+        x1=x;
+        return float(y); 
+    }
+private:
+    float a;
+    float x1;
+};
 
+void LowPassFilter(vector<float> & signal, float coef)
+{
+    lowpass lpf(coef);
+    for(unsigned i=0; i<signal.size(); ++i)
+        signal[i]=lpf(signal[i]);
+}
+
+void Normalize(vector<float> & signal)
+{
+    float max=0.f;
+    for(unsigned i=0; i<signal.size(); ++i)
+        if (abs(signal[i])>max) max=signal[i];
+    float factor=float(1<<15)/max;
+    for(unsigned i=0; i<signal.size(); ++i)
+        signal[i]*=factor;
 }
 
 // args:
 // coeffcient       a1
-// timest to run    n
+// times to run     n
 // audio file       input.wav
 int main(int argc, char* argv[])
 {
@@ -42,55 +70,22 @@ int main(int argc, char* argv[])
     in.read(data,size);
 
     cout << "The sample rate is:  " << rate << endl;
-    cout << "The data size is:  " << size << endl;
+    cout << "The data size is:  "   << size << endl;
 
-    // window/hop size
-    const float PI = 4.0f*atan(1.0f),
-              TWOPI = 2.0f*PI;
-    const int N = 1 << 11,
-            H = N >> 1;
-
-    // read input wav file
-
-
+    // convert to floating point data
+    vector<float> fdata(size);
+    for(unsigned i=0; i<size; ++i)
+	    fdata[i] = static_cast<float>(data[i]) / float(1<<15);
 
     // apply lowpass filter n times
-
-    float *W = new float[N];
-    for (int i=0; i < N; ++i)
-        W[i] = 0.5f*(1 - cos(i*TWOPI/(N-1)));
-
-    // find coefficient for each window
-    float frequency = float(atof(argv[1])), DT = TWOPI*frequency/float(rate);
-    unsigned wcount = (count - N)/H;
-    float *coef = new float[wcount];
-    short *samples = reinterpret_cast<short*>(data);
-    // This is the window loop
-    for (unsigned j=0; j < wcount; ++j) 
-    {
-        Complex z = 0;
-        for (int t=0; t < N; ++t) 
-        {
-            Complex itx(0,t*DT);
-            z += W[t]*float(samples[j*H+t])*exp(-itx);
-        }
-        coef[j] = abs(z);
-    }
+    for(unsigned i=0; i<N; ++i)
+        LowPassFilter(fdata,filter_coef);
 
     // write output wav file
-    float const norm = 2.0f/float(N), MAX = float((1<<15)-1);
-    for (unsigned i=0; i < count; ++i) 
-    {
-        int k = 0.5f*(2*i - N)/H, kp1 = k + 1;
-        if (k < 0)
-            k = kp1 = 0;
-        if (kp1 >= int(wcount))
-            k = kp1 = int(wcount) - 1;
-        
-        float x = (i - 0.5f*N)/H - k, y = norm*(coef[k] + (coef[kp1] - coef[k])*x);
-        samples[i] = short(min(MAX,abs(y)));
-    }
-
+    Normalize(fdata);
+    vector<short> samples(size);
+    for (unsigned i=0; i<size; ++i) 
+        samples[i]=static_cast<short>(fdata[i]*float(1<<15));
 
     string out_filename = "lowpass_" + N + '_' + in_filename + ".wav";
 

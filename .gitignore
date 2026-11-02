@@ -2,3 +2,4 @@
 *.obj
 SUBMISSION/
 
+.vscode/settings.json

@@ -1,0 +1,1 @@
+g++ -Wall -Werror -Wpedantic lowpass.cpp -o ../output/lowpass
