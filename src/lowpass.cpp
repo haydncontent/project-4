@@ -4,8 +4,10 @@
 // Project 4 - lowpass.cpp
 
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <string>
+#include <cstring>
 #include <vector>
 #include <cmath>
 
@@ -37,11 +39,11 @@ void LowPassFilter(vector<float> & signal, float coef)
 void Normalize(vector<float> & signal)
 {
     float max=0.f;
-    for(unsigned i=0; i<signal.size(); ++i)
-        if (abs(signal[i])>max) max=signal[i];
-    float factor=float(1<<15)/max;
-    for(unsigned i=0; i<signal.size(); ++i)
-        signal[i]*=factor;
+    for(float s : signal)
+        if (fabs(s)>max) max=fabs(s);
+    if (max==0.f) return;
+    float factor=1.f/max;
+    for(float& s : signal) s*=factor;
 }
 
 // args:
@@ -52,7 +54,7 @@ int main(int argc, char* argv[])
 {
     if (argc!=4) {cerr<<"incorrect number of args, expecting ./lowpass <a1> <n> <input.wav>"<<endl; return -1;}
 
-    int filter_coef = atoi(argv[1]);
+    float filter_coef = atof(argv[1]);
     int N = atoi(argv[2]);
     string in_filename(argv[3]);
 
@@ -61,35 +63,36 @@ int main(int argc, char* argv[])
 
     char header[44];
     in.read(header,44);
-    unsigned size = *reinterpret_cast<unsigned*>(header+40),rate = *reinterpret_cast<unsigned*>(header+24);
-    char *data = new char[size];
-    in.read(data,size);
 
-    cout << "The sample rate is:  " << rate << endl;
-    cout << "The data size is:  "   << size << endl;
+    unsigned size,rate;
+    memcpy(&size,header+40,4);
+    memcpy(&rate,header+24,4);
+    unsigned long int sampleCount = size / sizeof(short);
+    vector<short> rawData(sampleCount);
+    in.read(reinterpret_cast<char*>(rawData.data()),size);
+
+    cout << setw(25) << "The sample rate is: " << setw(10) << rate << endl;
+    cout << setw(25) << "The data size is: "   << setw(10) << size << endl;
 
     // convert to floating point data
-    vector<float> fdata(size);
-    for(unsigned i=0; i<size; ++i)
-	    fdata[i] = static_cast<float>(data[i]) / float(1<<15);
+    vector<float> fdata(sampleCount);
+    for(unsigned long int i=0l; i<sampleCount; ++i)
+	    fdata[i] = static_cast<float>(rawData[i]) / float(1<<15);
 
     // apply lowpass filter n times
     for(int i=0; i<N; ++i)
         LowPassFilter(fdata,filter_coef);
 
-    // write output wav file
     Normalize(fdata);
-    short *samples = new short[size];
-    for (unsigned i=0; i<size; ++i) 
-        samples[i]=static_cast<short>(fdata[i]*float(1<<15));
 
-    //string out_filename = "lowpass_" + N + '_' + in_filename + ".wav";
+    // write output wav file
+    vector<short> samples(sampleCount);
+    for (unsigned long int i=0l; i<sampleCount; ++i) 
+        samples[i]=static_cast<short>(fdata[i]*float((1<<15)-1));
+
     fstream out("output.wav",ios_base::binary|ios_base::out);
     out.write(header,44);
-    out.write(reinterpret_cast<char*>(samples),size);
-
-    delete[] data;
-    delete[] samples;
+    out.write(reinterpret_cast<char*>(samples.data()),size);
 
     return 0;
 }
