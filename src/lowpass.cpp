@@ -6,12 +6,10 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <vector>
 #include <cmath>
 
-#include "complex.h"
-
 using namespace std;
-using namespace IMath;
 
 // y_t = x_t + a*x_{t-1}
 class lowpass
@@ -63,9 +61,7 @@ int main(int argc, char* argv[])
 
     char header[44];
     in.read(header,44);
-    unsigned size = *reinterpret_cast<unsigned*>(header+40),
-        rate = *reinterpret_cast<unsigned*>(header+24),
-        count = size/2;
+    unsigned size = *reinterpret_cast<unsigned*>(header+40),rate = *reinterpret_cast<unsigned*>(header+24);
     char *data = new char[size];
     in.read(data,size);
 
@@ -78,22 +74,22 @@ int main(int argc, char* argv[])
 	    fdata[i] = static_cast<float>(data[i]) / float(1<<15);
 
     // apply lowpass filter n times
-    for(unsigned i=0; i<N; ++i)
+    for(int i=0; i<N; ++i)
         LowPassFilter(fdata,filter_coef);
 
     // write output wav file
     Normalize(fdata);
-    vector<short> samples(size);
+    short *samples = new short[size];
     for (unsigned i=0; i<size; ++i) 
         samples[i]=static_cast<short>(fdata[i]*float(1<<15));
 
-    string out_filename = "lowpass_" + N + '_' + in_filename + ".wav";
-
-    fstream out(out_filename,ios_base::binary|ios_base::out);
+    //string out_filename = "lowpass_" + N + '_' + in_filename + ".wav";
+    fstream out("output.wav",ios_base::binary|ios_base::out);
     out.write(header,44);
-    out.write(data,size);
+    out.write(reinterpret_cast<char*>(samples),size);
 
     delete[] data;
-    
+    delete[] samples;
+
     return 0;
 }
