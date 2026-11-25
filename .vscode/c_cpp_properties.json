@@ -4,7 +4,6 @@
       "name": "windows-gcc-x64",
       "includePath": [
         "${workspaceFolder}/**",
-        "h5_devel/include/"
       ],
       "compilerPath": "C:/Users/haydn/scoop/apps/gcc/current/bin/gcc.exe",
       "cStandard": "${default}",
